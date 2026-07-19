@@ -136,7 +136,7 @@ export function TabellaLavoro() {
           </Table.Header>
           <Table.Body>
             {sortedUsers.map((user) => (
-              <Table.Row key={user.type} id={user.id}>
+              <Table.Row key={user.type} id={user.date}>
                 <Table.Cell className="pr-0">
                   <Checkbox
                     aria-label={`Select ${user.status}`}

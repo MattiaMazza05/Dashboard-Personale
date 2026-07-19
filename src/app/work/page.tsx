@@ -1,3 +1,4 @@
+import { AddButton } from "./AddButton";
 import { Calendario } from "./Calendar";
 import { TabellaLavoro } from "./Tabella";
 
@@ -5,7 +6,8 @@ export default function Work() {
   return (
     <div>
       <Calendario />
-      <TabellaLavoro/>
+      <AddButton />
+      <TabellaLavoro />
     </div>
   );
 }
