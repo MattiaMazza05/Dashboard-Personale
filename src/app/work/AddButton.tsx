@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertDialog, Button } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { supabase } from "@/lib/supabase";
+import { getUserId } from "@/hooks/commonHook";
 
 type ActivityFormState = {
   type: string;
@@ -45,6 +46,7 @@ export function AddButton() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const payload = {
+      user_id: await getUserId(),
       tipo_attivita: formState.type,
       nome_evento: formState.description,
       ore_lavorate: Number(formState.hours),
