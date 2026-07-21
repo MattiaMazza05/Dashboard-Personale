@@ -16,7 +16,7 @@ type ActivityFormState = {
 };
 
 const initialFormState: ActivityFormState = {
-  type: "steward",
+  type: "Steward",
   date: "",
   description: "",
   hours: "",
@@ -64,7 +64,7 @@ export function AddButton() {
   };
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex flex-wrap gap-4 mb-5 mt-5">
       <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
         <Button className="gap-2 bg-accent-soft text-accent-soft-foreground">
           <Icon className="size-4" icon="gravity-ui:plus" />
@@ -103,12 +103,9 @@ export function AddButton() {
                           updateField("type", event.target.value)
                         }
                       >
-                        <option value="steward">Steward</option>
-                        <option value="uni">Università</option>
+                        <option value="Steward">Steward</option>
+                        <option value="Università">Università</option>
                       </select>
-                      <span className="text-xs text-foreground/55">
-                        Scegli la categoria corretta dell’attività.
-                      </span>
                     </label>
 
                     <label className="grid gap-2">
@@ -124,19 +121,16 @@ export function AddButton() {
                           updateField("date", event.target.value)
                         }
                       />
-                      <span className="text-xs text-foreground/55">
-                        Quando si è svolta l’attività.
-                      </span>
                     </label>
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
-                    <label className="grid min-w-0 gap-2">
+                    <label className="grid min-w-0 gap-2 sm:col-span-2">
                       <span className="text-sm font-medium text-foreground/80">
                         Descrizione
                       </span>
                       <input
-                        className="h-11 w-full max-w-64 rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
+                        className="h-11 w-full  rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
                         placeholder="Es. concerto..."
                         required
                         type="text"
@@ -146,7 +140,9 @@ export function AddButton() {
                         }
                       />
                     </label>
+                  </div>
 
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <label className="grid min-w-0 gap-2">
                       <span className="text-sm font-medium text-foreground/80">
                         Ore
@@ -163,9 +159,6 @@ export function AddButton() {
                         }
                       />
                     </label>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
                     <label className="grid min-w-0 gap-2">
                       <span className="text-sm font-medium text-foreground/80">
                         Paga attesa
@@ -179,23 +172,6 @@ export function AddButton() {
                         value={formState.standbyPay}
                         onChange={(event) =>
                           updateField("standbyPay", event.target.value)
-                        }
-                      />
-                    </label>
-
-                    <label className="grid min-w-0 gap-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Paga effettiva
-                      </span>
-                      <input
-                        className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        min="0"
-                        placeholder="50"
-                        required
-                        type="number"
-                        value={formState.receivedPay}
-                        onChange={(event) =>
-                          updateField("receivedPay", event.target.value)
                         }
                       />
                     </label>

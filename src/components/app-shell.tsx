@@ -9,14 +9,14 @@ type AppShellProps = {
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const showNav = pathname !== "/login";
+  const showNav = !pathname?.startsWith("/login");
 
   return (
     <>
       <div
         className={
           showNav
-            ? "min-h-full flex flex-col pb-24"
+            ? "min-h-full flex flex-col pb-28 md:pt-20 md:pb-0"
             : "min-h-full flex flex-col"
         }
       >

@@ -1,5 +1,5 @@
-export default function Sport(){
-    return(
-        <div>SPORT</div>
-    )
+import WipScreen from "@/components/WipScreen";
+
+export default function Sport() {
+  return <WipScreen title="Sport" />;
 }

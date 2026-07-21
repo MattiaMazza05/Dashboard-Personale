@@ -1,7 +1,5 @@
-import { Tabs } from '@heroui/react';
+import WipScreen from "@/components/WipScreen";
 
-export default function House(){
-    return(
-        <div>HOUSE</div>
-    )
+export default function House() {
+  return <WipScreen title="Casa" />;
 }
