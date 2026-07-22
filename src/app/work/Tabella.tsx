@@ -4,26 +4,20 @@ import { Button, Chip, Table, Spinner, EmptyState, toast } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { it } from "node:test";
+import type { Lavoro } from "@/types/lavoro";
 
 const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
   1: "success",
   0: "warning",
 };
 
-async function deleteRow(id: number) {
-  const { error } = await supabase.from("lavoro").delete().eq("id", id);
-
-  if (error) {
-    console.error("Errore durante l'eliminazione:", error);
-  } else {
-    console.log("Riga eliminata con successo!");
-    // Qui puoi aggiornare lo stato locale di React per rimuovere la riga dalla tabella a schermo senza ricaricare la pagina
-  }
+interface TabellaLavoroProps {
+  refreshKey?: number;
+  onSuccess?: () => void;
 }
 
-export function TabellaLavoro() {
-  const [lavori, setLavori] = useState<any[]>([]);
+export function TabellaLavoro({ refreshKey, onSuccess }: TabellaLavoroProps) {
+  const [lavori, setLavori] = useState<Lavoro[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -71,7 +65,7 @@ export function TabellaLavoro() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [refreshKey]);
   if (loading) return <Spinner />;
 
   if (lavori.length === 0) {
@@ -104,6 +98,7 @@ export function TabellaLavoro() {
       </Table>
     );
   }
+
   return (
     <Table>
       <Table.ScrollContainer>
@@ -147,9 +142,20 @@ export function TabellaLavoro() {
                       isIconOnly
                       size="sm"
                       variant="danger-soft"
-                      onClick={() => {
-                        deleteRow(item.id);
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from("lavoro")
+                          .delete()
+                          .eq("id", item.id);
+
+                        if (error) {
+                          console.error("Errore durante l'eliminazione:", error);
+                          toast.danger("Errore durante l'eliminazione");
+                          return;
+                        }
+
                         toast.success("Attività eliminata");
+                        onSuccess?.();
                       }}
                     >
                       <Icon className="size-4" icon="gravity-ui:trash-bin" />

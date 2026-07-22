@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Button } from "@heroui/react";
+import { AlertDialog, Button, toast } from "@heroui/react";
 import { Icon } from "@iconify/react";
 import { supabase } from "@/lib/supabase";
 import { getUserId } from "@/hooks/commonHook";
@@ -24,7 +24,11 @@ const initialFormState: ActivityFormState = {
   receivedPay: "",
 };
 
-export function AddButton() {
+interface AddButtonProps {
+  onSuccess?: () => void;
+}
+
+export function AddButton({ onSuccess }: AddButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [formState, setFormState] =
     useState<ActivityFormState>(initialFormState);
@@ -52,15 +56,26 @@ export function AddButton() {
       ore_lavorate: Number(formState.hours),
       data: formState.date,
       paga_attesa: Number(formState.standbyPay) || 0,
+      status: status()
     };
     const { error } = await supabase.from("lavoro").insert(payload);
 
     if (error) {
       console.error(error);
+      toast.danger("Errore durante l'inserimento dell'attività");
       return;
     }
     setIsOpen(false);
     resetForm();
+    toast.success("Attività inserita");
+    onSuccess?.();
+  };
+  const oggi = new Date().toISOString().split("T")[0];
+  const status = () => {
+    if (oggi > formState.date){
+      return 1
+    }
+    return 0
   };
 
   return (

@@ -1,40 +1,67 @@
 "use client";
 
-import { Card, Separator, AlertDialog, Button } from "@heroui/react";
+import { Card, Separator, AlertDialog, Button, toast } from "@heroui/react";
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { getUserId } from "@/hooks/commonHook";
+import type { Lavoro, Bonifico } from "@/types/lavoro";
 
-export function CardPayment() {
-  const [lavori, setLavori] = useState<any[]>([]);
-  const [bonifici, setBonifici] = useState<any[]>([]);
+interface CardPaymentProps {
+  refreshKey?: number;
+}
+
+export function CardPayment({ refreshKey }: CardPaymentProps) {
+  const [lavori, setLavori] = useState<Lavoro[]>([]);
+  const [bonifici, setBonifici] = useState<Bonifico[]>([]);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-    async function fetchData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  const fetchData = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const [resLavori, resBonifici] = await Promise.all([
-        supabase.from("lavoro").select("*").eq("user_id", user.id),
-        supabase.from("bonifici").select("*").eq("user_id", user.id)
-      ]);
-
-      if (resLavori.data) setLavori(resLavori.data);
-      if (resBonifici.data) setBonifici(resBonifici.data);
-
+    if (!user) {
       setLoading(false);
+      return;
     }
 
-    fetchData();
+    const [resLavori, resBonifici] = await Promise.all([
+      supabase.from("lavoro").select("*").eq("user_id", user.id),
+      supabase.from("bonifici").select("*").eq("user_id", user.id)
+    ]);
+
+    if (resLavori.data) setLavori(resLavori.data);
+    if (resBonifici.data) setBonifici(resBonifici.data);
+
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchData();
+
+    const channel = supabase
+      .channel("cardpayment-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lavoro" },
+        () => {
+          fetchData();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bonifici" },
+        () => {
+          fetchData();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData, refreshKey]);
 
   const mesiAnno = [
     { nome: "Gennaio", numero: "01" },
@@ -51,7 +78,7 @@ export function CardPayment() {
     { nome: "Dicembre", numero: "12" },
   ];
 
-  const annoCorrente = "2026";
+  const annoCorrente = String(new Date().getFullYear());
 
   const datiMensili = mesiAnno.map((m) => {
     const lavoriDelMese =
@@ -135,15 +162,18 @@ export function CardPayment() {
 
     if (error) {
       console.error(error);
+      toast.danger("Errore durante l'inserimento del bonifico");
       return;
     }
     setIsOpen(false);
     resetForm();
+    toast.success("Bonifico inserito");
+    fetchData();
   };
 
   return (
     <>
-      <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300">
+      <div className="pt-3 flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300">
         {datiMensili.map((item, index) => (
           <Card
             key={index}
