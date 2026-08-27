@@ -1,0 +1,13 @@
+{
+  "name": "Jarvis — dashboard personale",
+  "short_name": "Jarvis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f2f2",
+  "theme_color": "#ec3013",
+  "icons": [
+    { "src": "/brand/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/brand/favicon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/brand/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

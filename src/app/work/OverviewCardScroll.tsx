@@ -1,20 +1,52 @@
 "use client";
 
-import { Card, Separator, AlertDialog, Button, toast } from "@heroui/react";
 import { supabase } from "@/lib/supabase";
 import { useCallback, useEffect, useState } from "react";
-import { Icon } from "@iconify/react";
 import { getUserId } from "@/hooks/commonHook";
 import type { Lavoro, Bonifico } from "@/types/lavoro";
+import { toast } from "sonner";
+import { Landmark } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface CardPaymentProps {
+const mesiAnno = [
+  "Gennaio",
+  "Febbraio",
+  "Marzo",
+  "Aprile",
+  "Maggio",
+  "Giugno",
+  "Luglio",
+  "Agosto",
+  "Settembre",
+  "Ottobre",
+  "Novembre",
+  "Dicembre",
+];
+
+interface KpiBarProps {
   refreshKey?: number;
 }
 
-export function CardPayment({ refreshKey }: CardPaymentProps) {
+export function KpiBar({ refreshKey }: KpiBarProps) {
   const [lavori, setLavori] = useState<Lavoro[]>([]);
   const [bonifici, setBonifici] = useState<Bonifico[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     const {
@@ -22,7 +54,6 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      setLoading(false);
       return;
     }
 
@@ -33,8 +64,6 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
 
     if (resLavori.data) setLavori(resLavori.data);
     if (resBonifici.data) setBonifici(resBonifici.data);
-
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -63,63 +92,16 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
     };
   }, [fetchData, refreshKey]);
 
-  const mesiAnno = [
-    { nome: "Gennaio", numero: "01" },
-    { nome: "Febbraio", numero: "02" },
-    { nome: "Marzo", numero: "03" },
-    { nome: "Aprile", numero: "04" },
-    { nome: "Maggio", numero: "05" },
-    { nome: "Giugno", numero: "06" },
-    { nome: "Luglio", numero: "07" },
-    { nome: "Agosto", numero: "08" },
-    { nome: "Settembre", numero: "09" },
-    { nome: "Ottobre", numero: "10" },
-    { nome: "Novembre", numero: "11" },
-    { nome: "Dicembre", numero: "12" },
+  const oreTotali = lavori.reduce((acc, l) => acc + Number(l.ore_lavorate || 0), 0);
+  const attesaTotale = lavori.reduce((acc, l) => acc + Number(l.paga_attesa || 0), 0);
+  const effettivoTotale = bonifici.reduce((acc, b) => acc + Number(b.importo_totale || 0), 0);
+
+  const kpi = [
+    { label: "Ore totali", value: `${oreTotali} h` },
+    { label: "Attesa totale", value: `€ ${attesaTotale}` },
+    { label: "Guadagno effettivo", value: `€ ${effettivoTotale}` },
+    { label: "Attività registrate", value: `${lavori.length}` },
   ];
-
-  const annoCorrente = String(new Date().getFullYear());
-
-  const datiMensili = mesiAnno.map((m) => {
-    const lavoriDelMese =
-      lavori?.filter((item) => {
-        return item.data && item.data.startsWith(`${annoCorrente}-${m.numero}`);
-      }) || [];
-
-    const attesa = lavoriDelMese.reduce(
-      (acc, curr) => acc + Number(curr.paga_attesa || 0),
-      0,
-    );
-
-    const ore = lavoriDelMese.reduce(
-      (acc, curr) => acc + Number(curr.ore_lavorate || 0),
-      0,
-    );
-    const bonificiDelMese =
-      bonifici?.filter((b) => {
-        if (!b.mese_di_riferimento) return false;
-        return (
-          b.mese_di_riferimento.trim().toLowerCase() ===
-          m.nome.trim().toLowerCase()
-        );
-      }) || [];
-
-    const effettiva = bonificiDelMese.reduce(
-      (acc, curr) => acc + Number(curr.importo_totale || 0),
-      0,
-    );
-    const differenza = effettiva - attesa;
-    const numAttivita = lavoriDelMese.length;
-
-    return {
-      mese: m.nome,
-      attesa,
-      effettiva,
-      differenza,
-      ore,
-      numAttivita,
-    };
-  });
 
   type RealRevenue = {
     total: number;
@@ -128,7 +110,7 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
 
   const initialFormState: RealRevenue = {
     total: 0,
-    month: "",
+    month: mesiAnno[new Date().getMonth()],
   };
 
   const [isOpen, setIsOpen] = useState(false);
@@ -162,7 +144,7 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
 
     if (error) {
       console.error(error);
-      toast.danger("Errore durante l'inserimento del bonifico");
+      toast.error("Errore durante l'inserimento del bonifico");
       return;
     }
     setIsOpen(false);
@@ -173,112 +155,83 @@ export function CardPayment({ refreshKey }: CardPaymentProps) {
 
   return (
     <>
-      <div className="pt-3 flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300">
-        {datiMensili.map((item, index) => (
-          <Card
-            key={index}
-            className="w-[320px] min-w-[320px] shrink-0 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-            onClick={() => {
-              // Impostiamo il mese nel form state e apriamo il dialog
-              setFormState((prev) => ({ ...prev, month: item.mese }));
-              setIsOpen(true);
-            }}
-          >
-            <Card.Header>
-              <Card.Title className="text-2xl font-bold text-gray-900 mb-6">
-                {item.mese}
-              </Card.Title>
-            </Card.Header>
-            <Card.Content>
-              <div className="grid grid-cols-2 gap-4 mb-5">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">
-                    Attesa
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {item.attesa} €
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">
-                    Effettiva
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {item.effettiva} €
-                  </p>
-                </div>
-              </div>
-              {item.differenza >= 0 ? (
-                <p className="text-sm font-semibold text-emerald-600">
-                  + {item.differenza} €
-                </p>
-              ) : (
-                <p className="text-sm font-semibold text-red-600">
-                  {item.differenza} €
-                </p>
-              )}
-            </Card.Content>
-            <Separator />
-            <Card.Footer>
-              <p className="text-sm text-gray-500">
-                {item.ore}h · {item.numAttivita} attività
-              </p>
-            </Card.Footer>
-          </Card>
-        ))}
-      </div>
-      <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
-        <AlertDialog.Backdrop>
-          <AlertDialog.Container>
-            <AlertDialog.Dialog className="sm:max-w-100">
-              <AlertDialog.CloseTrigger />
-              <AlertDialog.Header>
-                <div className="flex items-center gap-3">
-                  <AlertDialog.Icon status="accent">
-                    <Icon className="size-4" icon="gravity-ui:plus" />
-                  </AlertDialog.Icon>
-                  <AlertDialog.Heading>
-                    Inserisci la paga effettiva per il mese di {formState.month}
-                  </AlertDialog.Heading>
-                </div>
-              </AlertDialog.Header>
-              <AlertDialog.Body>
-                <form
-                  id="new-work-form"
-                  className="grid gap-6"
-                  onSubmit={handleSubmit}
-                >
-                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
-                    <label className="grid min-w-0 gap-2 sm:col-span-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Importo
-                      </span>
-                      <input
-                        className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        placeholder="Es. 250..."
-                        required
-                        type="number"
-                        value={formState.total}
-                        onChange={(event) =>
-                          updateField("total", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                  </div>
-                </form>
-              </AlertDialog.Body>
-              <AlertDialog.Footer>
-                <Button slot="close" variant="tertiary" onPress={resetForm}>
-                  Annulla
-                </Button>
-                <Button form="new-work-form" type="submit">
-                  Inserisci
-                </Button>
-              </AlertDialog.Footer>
-            </AlertDialog.Dialog>
-          </AlertDialog.Container>
-        </AlertDialog.Backdrop>
-      </AlertDialog>
+      <Card className="jarvis-panel mb-5 flex flex-row flex-wrap items-center gap-4 p-4">
+        <div className="flex flex-1 flex-wrap gap-4">
+          {kpi.map((k, index) => (
+            <div
+              key={k.label}
+              className={
+                index > 0
+                  ? "flex min-w-[120px] flex-1 flex-col gap-1 border-l border-white/10 pl-4"
+                  : "flex min-w-[120px] flex-1 flex-col gap-1"
+              }
+            >
+              <span className="text-xs text-white/55">{k.label}</span>
+              <b className="font-mono text-xl font-medium tracking-tight">{k.value}</b>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          className="gap-2 border-white/16 bg-white/6"
+          onClick={() => setIsOpen(true)}
+        >
+          <Landmark className="size-4" />
+          Registra bonifico
+        </Button>
+      </Card>
+
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent className="jarvis-panel sm:max-w-100">
+          <DialogHeader>
+            <DialogTitle>Registra un bonifico ricevuto</DialogTitle>
+          </DialogHeader>
+          <form id="bonifico-form" className="grid gap-6" onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <Label>Mese di riferimento</Label>
+              <Select
+                value={formState.month}
+                onValueChange={(value) => updateField("month", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {mesiAnno.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Importo</Label>
+              <Input
+                placeholder="Es. 250..."
+                required
+                type="number"
+                value={formState.total}
+                onChange={(event) => updateField("total", Number(event.target.value))}
+              />
+            </div>
+          </form>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsOpen(false)}>
+              Annulla
+            </Button>
+            <Button form="bonifico-form" type="submit">
+              Inserisci
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

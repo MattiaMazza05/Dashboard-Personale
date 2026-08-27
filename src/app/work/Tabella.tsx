@@ -1,22 +1,41 @@
 "use client";
 
-import {
-  Button,
-  Chip,
-  Table,
-  Spinner,
-  EmptyState,
-  toast,
-  AlertDialog,
-} from "@heroui/react";
-import { Icon } from "@iconify/react";
+import { Pencil, Trash2, Inbox } from "lucide-react";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Lavoro } from "@/types/lavoro";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
-  1: "success",
-  0: "warning",
+const statusLabel: Record<number, string> = {
+  0: "Prenotato",
+  1: "Fatto",
 };
 
 type EditFormState = {
@@ -73,7 +92,7 @@ function EditActivityDialog({ item, onSuccess }: EditActivityDialogProps) {
 
     if (error) {
       console.error("Errore durante la modifica:", error);
-      toast.danger("Errore durante la modifica");
+      toast.error("Errore durante la modifica");
       return;
     }
 
@@ -81,7 +100,7 @@ function EditActivityDialog({ item, onSuccess }: EditActivityDialogProps) {
       console.error(
         "Nessuna riga aggiornata: probabile blocco RLS (manca una policy UPDATE su 'lavoro') o id inesistente.",
       );
-      toast.danger(
+      toast.error(
         "Nessuna modifica salvata: controlla i permessi (RLS) sulla tabella 'lavoro'",
       );
       return;
@@ -95,120 +114,93 @@ function EditActivityDialog({ item, onSuccess }: EditActivityDialogProps) {
   const formId = `edit-work-form-${item.id}`;
 
   return (
-    <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button isIconOnly size="sm" variant="tertiary">
-        <Icon className="size-4" icon="gravity-ui:pencil" />
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        onClick={() => setIsOpen(true)}
+      >
+        <Pencil className="size-4" />
       </Button>
-      <AlertDialog.Backdrop>
-        <AlertDialog.Container>
-          <AlertDialog.Dialog className="sm:max-w-100">
-            <AlertDialog.CloseTrigger />
-            <AlertDialog.Header>
-              <AlertDialog.Icon />
-              <AlertDialog.Heading>Modifica le informazioni</AlertDialog.Heading>
-            </AlertDialog.Header>
-            <AlertDialog.Body>
-              <form id={formId} className="grid gap-6" onSubmit={handleUpdate}>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-foreground/80">
-                      Tipo attività
-                    </span>
-                    <select
-                      className="h-11 rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                      required
-                      value={formState.type}
-                      onChange={(event) =>
-                        updateField("type", event.target.value)
-                      }
-                    >
-                      <option value="Steward">Steward</option>
-                      <option value="Università">Università</option>
-                    </select>
-                  </label>
+      <DialogContent className="jarvis-panel sm:max-w-100">
+        <DialogHeader>
+          <DialogTitle>Modifica le informazioni</DialogTitle>
+        </DialogHeader>
+        <form id={formId} className="grid gap-6" onSubmit={handleUpdate}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Tipo attività</Label>
+              <Select
+                value={formState.type}
+                onValueChange={(value) => updateField("type", value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Steward">Steward</SelectItem>
+                  <SelectItem value="Università">Università</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                  <label className="grid gap-2">
-                    <span className="text-sm font-medium text-foreground/80">
-                      Data
-                    </span>
-                    <input
-                      className="h-11 rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                      required
-                      type="date"
-                      value={formState.date}
-                      onChange={(event) =>
-                        updateField("date", event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
+            <div className="grid gap-2">
+              <Label>Data</Label>
+              <Input
+                required
+                type="date"
+                value={formState.date}
+                onChange={(event) => updateField("date", event.target.value)}
+              />
+            </div>
+          </div>
 
-                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
-                  <label className="grid min-w-0 gap-2 sm:col-span-2">
-                    <span className="text-sm font-medium text-foreground/80">
-                      Descrizione
-                    </span>
-                    <input
-                      className="h-11 w-full  rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                      placeholder="Es. concerto..."
-                      required
-                      type="text"
-                      value={formState.description}
-                      onChange={(event) =>
-                        updateField("description", event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
+          <div className="grid gap-2">
+            <Label>Descrizione</Label>
+            <Input
+              placeholder="Es. concerto..."
+              required
+              type="text"
+              value={formState.description}
+              onChange={(event) => updateField("description", event.target.value)}
+            />
+          </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="grid min-w-0 gap-2">
-                    <span className="text-sm font-medium text-foreground/80">
-                      Ore
-                    </span>
-                    <input
-                      className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                      min="0"
-                      placeholder="8"
-                      required
-                      type="number"
-                      value={formState.hours}
-                      onChange={(event) =>
-                        updateField("hours", event.target.value)
-                      }
-                    />
-                  </label>
-                  <label className="grid min-w-0 gap-2">
-                    <span className="text-sm font-medium text-foreground/80">
-                      Paga attesa
-                    </span>
-                    <input
-                      className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                      min="0"
-                      placeholder="40"
-                      required
-                      type="number"
-                      value={formState.standbyPay}
-                      onChange={(event) =>
-                        updateField("standbyPay", event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
-              </form>
-            </AlertDialog.Body>
-            <AlertDialog.Footer>
-              <Button slot="close" variant="tertiary">
-                Annulla
-              </Button>
-              <Button form={formId} type="submit">
-                Salva modifiche
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Dialog>
-        </AlertDialog.Container>
-      </AlertDialog.Backdrop>
-    </AlertDialog>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label>Ore</Label>
+              <Input
+                min="0"
+                placeholder="8"
+                required
+                type="number"
+                value={formState.hours}
+                onChange={(event) => updateField("hours", event.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Paga attesa</Label>
+              <Input
+                min="0"
+                placeholder="40"
+                required
+                type="number"
+                value={formState.standbyPay}
+                onChange={(event) => updateField("standbyPay", event.target.value)}
+              />
+            </div>
+          </div>
+        </form>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setIsOpen(false)}>
+            Annulla
+          </Button>
+          <Button form={formId} type="submit">
+            Salva modifiche
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -217,9 +209,15 @@ interface TabellaLavoroProps {
   onSuccess?: () => void;
 }
 
+function meseDi(data: string) {
+  const nome = new Date(data).toLocaleDateString("it-IT", { month: "long" });
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
 export function TabellaLavoro({ refreshKey, onSuccess }: TabellaLavoroProps) {
   const [lavori, setLavori] = useState<Lavoro[]>([]);
   const [loading, setLoading] = useState(true);
+  const [meseFiltro, setMeseFiltro] = useState("Tutti");
 
   useEffect(() => {
     async function fetchLavori() {
@@ -267,108 +265,132 @@ export function TabellaLavoro({ refreshKey, onSuccess }: TabellaLavoroProps) {
       supabase.removeChannel(channel);
     };
   }, [refreshKey]);
-  if (loading) return <Spinner />;
 
-  if (lavori.length === 0) {
+  if (loading) {
     return (
-      <Table className="min-h-50">
-        <Table.ScrollContainer>
-          <Table.Content aria-label="Empty table" className="h-full min-w-150">
-            <Table.Header>
-              <Table.Column isRowHeader>Tipo Attività</Table.Column>
-              <Table.Column>Data</Table.Column>
-              <Table.Column>Descrizione</Table.Column>
-              <Table.Column>Ore</Table.Column>
-              <Table.Column>Paga Attesa</Table.Column>
-              <Table.Column>Status</Table.Column>
-            </Table.Header>
-            <Table.Body
-              renderEmptyState={() => (
-                <EmptyState className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
-                  <Icon className="size-6 text-muted" icon="gravity-ui:tray" />
-                  <span className="text-sm text-muted">
-                    Non ci sono voci da mostrare
-                  </span>
-                </EmptyState>
-              )}
-            >
-              {[]}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
+      <div className="flex min-h-50 items-center justify-center">
+        <Spinner />
+      </div>
     );
   }
 
+  if (lavori.length === 0) {
+    return (
+      <div className="jarvis-panel flex min-h-50 flex-col items-center justify-center gap-4 rounded-2xl p-8 text-center">
+        <Inbox className="size-6 text-white/50" />
+        <span className="text-sm text-white/50">Non ci sono voci da mostrare</span>
+      </div>
+    );
+  }
+
+  const mesiDisponibili = Array.from(
+    new Set(lavori.map((item) => meseDi(item.data)).filter(Boolean)),
+  ).sort(
+    (a, b) =>
+      lavori.findIndex((item) => meseDi(item.data) === a) -
+      lavori.findIndex((item) => meseDi(item.data) === b),
+  );
+
+  const lavoriFiltrati =
+    meseFiltro === "Tutti"
+      ? lavori
+      : lavori.filter((item) => meseDi(item.data) === meseFiltro);
+
   return (
-    <Table>
-      <Table.ScrollContainer>
-        <Table.Content aria-label="Team members" className="min-w-150">
-          <Table.Header>
-            <Table.Column isRowHeader>Tipo Attività</Table.Column>
-            <Table.Column>Data</Table.Column>
-            <Table.Column>Descrizione</Table.Column>
-            <Table.Column>Ore</Table.Column>
-            <Table.Column>Paga Attesa</Table.Column>
-            <Table.Column>Status</Table.Column>
-            <Table.Column>Azioni</Table.Column>
-          </Table.Header>
-          <Table.Body>
-            {lavori.map((item) => (
-              <Table.Row key={item.id}>
-                <Table.Cell>{item.tipo_attivita}</Table.Cell>
-                <Table.Cell>{item.data}</Table.Cell>
-                <Table.Cell>{item.nome_evento}</Table.Cell>
-                <Table.Cell>{item.ore_lavorate}</Table.Cell>
-                <Table.Cell>€ {item.paga_attesa} </Table.Cell>
-                <Table.Cell>
-                  <Chip
-                    color={statusColorMap[item.status]}
-                    size="sm"
-                    variant="soft"
+    <div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {["Tutti", ...mesiDisponibili].map((mese) => (
+          <button
+            key={mese}
+            onClick={() => setMeseFiltro(mese)}
+            className={
+              mese === meseFiltro
+                ? "flex min-h-9 items-center gap-2 rounded-full border border-white/22 bg-white/14 px-3.5 text-sm text-white transition-colors"
+                : "flex min-h-9 items-center gap-2 rounded-full border border-white/12 bg-white/5 px-3.5 text-sm text-white/60 transition-colors hover:bg-white/10"
+            }
+          >
+            {mese === meseFiltro && (
+              <span className="size-1.5 rounded-full bg-[#ff8b6f] shadow-[0_0_8px_#ff8b6f]" />
+            )}
+            {mese}
+          </button>
+        ))}
+      </div>
+
+      {lavoriFiltrati.length === 0 ? (
+        <div className="jarvis-panel flex min-h-50 flex-col items-center justify-center gap-4 rounded-2xl p-8 text-center">
+          <Inbox className="size-6 text-white/50" />
+          <span className="text-sm text-white/50">
+            Nessuna attività per {meseFiltro}
+          </span>
+        </div>
+      ) : (
+    <div className="jarvis-panel overflow-x-auto rounded-2xl">
+      <Table className="min-w-150">
+        <TableHeader>
+          <TableRow className="border-white/10 hover:bg-transparent">
+            <TableHead className="text-white/45">Tipo Attività</TableHead>
+            <TableHead className="text-white/45">Data</TableHead>
+            <TableHead className="text-white/45">Descrizione</TableHead>
+            <TableHead className="text-white/45">Ore</TableHead>
+            <TableHead className="text-white/45">Paga Attesa</TableHead>
+            <TableHead className="text-white/45">Status</TableHead>
+            <TableHead className="text-white/45">Azioni</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lavoriFiltrati.map((item) => (
+            <TableRow key={item.id} className="border-white/10">
+              <TableCell>{item.tipo_attivita}</TableCell>
+              <TableCell>{item.data}</TableCell>
+              <TableCell>{item.nome_evento}</TableCell>
+              <TableCell>{item.ore_lavorate}</TableCell>
+              <TableCell>€ {item.paga_attesa} </TableCell>
+              <TableCell>
+                <Badge
+                  variant="outline"
+                  className={
+                    item.status === 1
+                      ? "border-[rgba(110,231,168,.34)] bg-[rgba(110,231,168,.16)] text-[#a5f2c9]"
+                      : "border-white/14 bg-white/8 text-white/62"
+                  }
+                >
+                  {statusLabel[item.status] ?? "Non Fatto"}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  <EditActivityDialog item={item} onSuccess={onSuccess} />
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="text-[#ffb4a2] hover:bg-[rgba(255,120,100,.16)] hover:text-[#ffb4a2]"
+                    onClick={async () => {
+                      const { error } = await supabase
+                        .from("lavoro")
+                        .delete()
+                        .eq("id", item.id);
+
+                      if (error) {
+                        console.error("Errore durante l'eliminazione:", error);
+                        toast.error("Errore durante l'eliminazione");
+                        return;
+                      }
+
+                      toast.success("Attività eliminata");
+                      onSuccess?.();
+                    }}
                   >
-                    {item.status === 0
-                      ? "Prenotato"
-                      : item.status == 1
-                        ? "Fatto"
-                        : "Non Fatto"}
-                  </Chip>
-                </Table.Cell>
-                <Table.Cell>
-                  <div className="flex items-center gap-1">
-                    <EditActivityDialog item={item} onSuccess={onSuccess} />
-                    <Button
-                      isIconOnly
-                      size="sm"
-                      variant="danger-soft"
-                      onClick={async () => {
-                        const { error } = await supabase
-                          .from("lavoro")
-                          .delete()
-                          .eq("id", item.id);
-
-                        if (error) {
-                          console.error(
-                            "Errore durante l'eliminazione:",
-                            error,
-                          );
-                          toast.danger("Errore durante l'eliminazione");
-                          return;
-                        }
-
-                        toast.success("Attività eliminata");
-                        onSuccess?.();
-                      }}
-                    >
-                      <Icon className="size-4" icon="gravity-ui:trash-bin" />
-                    </Button>
-                  </div>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Content>
-      </Table.ScrollContainer>
-    </Table>
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+      )}
+    </div>
   );
 }

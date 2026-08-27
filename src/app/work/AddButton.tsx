@@ -1,10 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { AlertDialog, Button, toast } from "@heroui/react";
-import { Icon } from "@iconify/react";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getUserId } from "@/hooks/commonHook";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type ActivityFormState = {
   type: string;
@@ -12,7 +30,6 @@ type ActivityFormState = {
   description: string;
   hours: string;
   standbyPay: string;
-  receivedPay: string;
 };
 
 const initialFormState: ActivityFormState = {
@@ -21,7 +38,6 @@ const initialFormState: ActivityFormState = {
   description: "",
   hours: "",
   standbyPay: "",
-  receivedPay: "",
 };
 
 interface AddButtonProps {
@@ -49,6 +65,7 @@ export function AddButton({ onSuccess }: AddButtonProps) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const oggi = new Date().toISOString().split("T")[0];
     const payload = {
       user_id: await getUserId(),
       tipo_attivita: formState.type,
@@ -56,13 +73,13 @@ export function AddButton({ onSuccess }: AddButtonProps) {
       ore_lavorate: Number(formState.hours),
       data: formState.date,
       paga_attesa: Number(formState.standbyPay) || 0,
-      status: status()
+      status: oggi > formState.date ? 1 : 0,
     };
     const { error } = await supabase.from("lavoro").insert(payload);
 
     if (error) {
       console.error(error);
-      toast.danger("Errore durante l'inserimento dell'attività");
+      toast.error("Errore durante l'inserimento dell'attività");
       return;
     }
     setIsOpen(false);
@@ -70,141 +87,101 @@ export function AddButton({ onSuccess }: AddButtonProps) {
     toast.success("Attività inserita");
     onSuccess?.();
   };
-  const oggi = new Date().toISOString().split("T")[0];
-  const status = () => {
-    if (oggi > formState.date){
-      return 1
-    }
-    return 0
-  };
 
   return (
-    <div className="flex flex-wrap gap-4 mb-5 mt-5">
-      <AlertDialog isOpen={isOpen} onOpenChange={setIsOpen}>
-        <Button className="gap-2 bg-accent-soft text-accent-soft-foreground">
-          <Icon className="size-4" icon="gravity-ui:plus" />
-          Nuova attività
-        </Button>
-        <AlertDialog.Backdrop>
-          <AlertDialog.Container>
-            <AlertDialog.Dialog className="sm:max-w-100">
-              <AlertDialog.CloseTrigger />
-              <AlertDialog.Header>
-                <div className="flex items-center gap-3">
-                  <AlertDialog.Icon status="accent">
-                    <Icon className="size-4" icon="gravity-ui:plus" />
-                  </AlertDialog.Icon>
-                  <AlertDialog.Heading>
-                    Inserisci nuova attività
-                  </AlertDialog.Heading>
-                </div>
-              </AlertDialog.Header>
-              <AlertDialog.Body>
-                <form
-                  id="new-work-form"
-                  className="grid gap-6"
-                  onSubmit={handleSubmit}
+    <div className="mb-4 flex flex-wrap gap-4">
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          setIsOpen(open);
+          if (!open) resetForm();
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button className="jarvis-cta gap-2 border border-white/22 text-[#210c05]">
+            <Plus className="size-4" />
+            Nuova attività
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="jarvis-panel sm:max-w-100">
+          <DialogHeader>
+            <DialogTitle>Inserisci nuova attività</DialogTitle>
+          </DialogHeader>
+          <form id="new-work-form" className="grid gap-6" onSubmit={handleSubmit}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Tipo attività</Label>
+                <Select
+                  value={formState.type}
+                  onValueChange={(value) => updateField("type", value)}
                 >
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Tipo attività
-                      </span>
-                      <select
-                        className="h-11 rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        required
-                        value={formState.type}
-                        onChange={(event) =>
-                          updateField("type", event.target.value)
-                        }
-                      >
-                        <option value="Steward">Steward</option>
-                        <option value="Università">Università</option>
-                      </select>
-                    </label>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Steward">Steward</SelectItem>
+                    <SelectItem value="Università">Università</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                    <label className="grid gap-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Data
-                      </span>
-                      <input
-                        className="h-11 rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        required
-                        type="date"
-                        value={formState.date}
-                        onChange={(event) =>
-                          updateField("date", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
+              <div className="grid gap-2">
+                <Label>Data</Label>
+                <Input
+                  required
+                  type="date"
+                  value={formState.date}
+                  onChange={(event) => updateField("date", event.target.value)}
+                />
+              </div>
+            </div>
 
-                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_140px]">
-                    <label className="grid min-w-0 gap-2 sm:col-span-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Descrizione
-                      </span>
-                      <input
-                        className="h-11 w-full  rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        placeholder="Es. concerto..."
-                        required
-                        type="text"
-                        value={formState.description}
-                        onChange={(event) =>
-                          updateField("description", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
+            <div className="grid gap-2">
+              <Label>Descrizione</Label>
+              <Input
+                placeholder="Es. concerto..."
+                required
+                type="text"
+                value={formState.description}
+                onChange={(event) => updateField("description", event.target.value)}
+              />
+            </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="grid min-w-0 gap-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Ore
-                      </span>
-                      <input
-                        className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        min="0"
-                        placeholder="8"
-                        required
-                        type="number"
-                        value={formState.hours}
-                        onChange={(event) =>
-                          updateField("hours", event.target.value)
-                        }
-                      />
-                    </label>
-                    <label className="grid min-w-0 gap-2">
-                      <span className="text-sm font-medium text-foreground/80">
-                        Paga attesa
-                      </span>
-                      <input
-                        className="h-11 w-full rounded-xl border border-foreground/10 bg-background px-3 text-sm outline-none transition placeholder:text-foreground/35 focus:border-accent-soft focus:ring-2 focus:ring-accent-soft/30"
-                        min="0"
-                        placeholder="40"
-                        required
-                        type="number"
-                        value={formState.standbyPay}
-                        onChange={(event) =>
-                          updateField("standbyPay", event.target.value)
-                        }
-                      />
-                    </label>
-                  </div>
-                </form>
-              </AlertDialog.Body>
-              <AlertDialog.Footer>
-                <Button slot="close" variant="tertiary" onPress={resetForm}>
-                  Annulla
-                </Button>
-                <Button form="new-work-form" type="submit">
-                  Inserisci attività
-                </Button>
-              </AlertDialog.Footer>
-            </AlertDialog.Dialog>
-          </AlertDialog.Container>
-        </AlertDialog.Backdrop>
-      </AlertDialog>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Ore</Label>
+                <Input
+                  min="0"
+                  placeholder="8"
+                  required
+                  type="number"
+                  value={formState.hours}
+                  onChange={(event) => updateField("hours", event.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Paga attesa</Label>
+                <Input
+                  min="0"
+                  placeholder="40"
+                  required
+                  type="number"
+                  value={formState.standbyPay}
+                  onChange={(event) => updateField("standbyPay", event.target.value)}
+                />
+              </div>
+            </div>
+          </form>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsOpen(false)}>
+              Annulla
+            </Button>
+            <Button form="new-work-form" type="submit">
+              Inserisci attività
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
